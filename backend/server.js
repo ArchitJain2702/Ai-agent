@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import youtubeRoutes from "./routes/youtube.js";
 import { sendOTPEmail } from "./utils/email.js";
+import notesRoutes from "./routes/notes.js"; 
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ mongoose
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api", youtubeRoutes);
-
+app.use("/api/notes",notesRoutes);
 // Health check
 app.get("/", (_req, res) => res.send("Backend is running 🚀"));
 
