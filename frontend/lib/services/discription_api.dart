@@ -81,8 +81,6 @@ class ApiService {
         }),
       );
       
-      print('📊 Notes response status: ${response.statusCode}');
-      print('📦 Notes response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

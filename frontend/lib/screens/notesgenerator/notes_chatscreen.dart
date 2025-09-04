@@ -1,6 +1,7 @@
 // screens/notes_chat_screen.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import for clipboard
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:frontend/models/messages.dart';
 import 'package:frontend/services/discription_api.dart';
@@ -25,17 +26,31 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
     _addWelcomeMessage();
   }
 
- void _addWelcomeMessage() {
-  setState(() {
-    _messages.add(Message(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: "Hi! I'm your notes assistant. You can:\n\n• Type or paste your syllabus and I'll create notes\n• Upload a PDF and I'll summarize it\n• Specify requirements like '5 pages', 'simple language', 'highlight key concepts'\n\nHow can I help you today?",
-      isUser: false,
-      timestamp: DateTime.now(),
-    ));
-  });
-}
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Copied to clipboard"),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
+  void _addWelcomeMessage() {
+    setState(() {
+      _messages.add(
+        Message(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          text:
+              "Welcome back.\nShare your syllabus or a PDF,\nand I’ll create clear, focused notes for you. Just let me know your preferences, and we’ll get started.",
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    });
+  }
+
+  // All your existing functions (unchanged)
   void _pickPDF() async {
     try {
       final file = await _apiService.pickPDFFile();
@@ -43,10 +58,13 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
         setState(() {
           _selectedPDF = file;
         });
-        
+
         // Add message showing PDF selected
         _addMessage("📄 PDF selected: ${file.path.split('/').last}", true);
-        _addMessage("Great! Now tell me how you'd like me to process this PDF. For example:\n• 'Summarize in 3 pages'\n• 'Create detailed notes with key concepts highlighted'\n• 'Make it simple for exam preparation'", false);
+        _addMessage(
+          "Great! Now tell me how you'd like me to process this PDF. For example:\n• 'Summarize in 3 pages'\n• 'Create detailed notes with key concepts highlighted'\n• 'Make it simple for exam preparation'",
+          false,
+        );
       }
     } catch (e) {
       _showError('Failed to pick PDF: $e');
@@ -63,14 +81,14 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
 
     try {
       String response;
-      
+
       if (_selectedPDF != null) {
         // Process PDF with user's requirements
         _addMessage(text, true); // Add user's requirements message
         _addMessage("🔄 Processing your PDF... This may take a moment.", false);
-        
+
         response = await _apiService.processPDFNotes(_selectedPDF!, text);
-        
+
         // Clear selected PDF after processing
         setState(() {
           _selectedPDF = null;
@@ -79,8 +97,11 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
         // Process text-based notes
         _addMessage(text, true);
         _addMessage("🔄 Creating notes from your content...", false);
-        
-        response = await _apiService.processTextNotes(text, "Create comprehensive notes");
+
+        response = await _apiService.processTextNotes(
+          text,
+          "Create comprehensive notes",
+        );
       }
 
       // Remove loading message and add AI response
@@ -89,9 +110,8 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
           _messages.removeLast();
         }
       });
-      
+
       _addMessage(response, false);
-      
     } catch (e) {
       setState(() {
         if (_messages.isNotEmpty && _messages.last.text.contains("🔄")) {
@@ -109,12 +129,17 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
 
   void _addMessage(String text, bool isUser) {
     setState(() {
-      _messages.add(Message(
-        id: DateTime.now().millisecondsSinceEpoch.toString() + '_' + (_messages.length.toString()),
-        text: text,
-        isUser: isUser,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        Message(
+          id:
+              DateTime.now().millisecondsSinceEpoch.toString() +
+              '_' +
+              (_messages.length.toString()), // Generate unique ID
+          text: text,
+          isUser: isUser,
+          timestamp: DateTime.now(),
+        ),
+      );
     });
     _scrollToBottom();
   }
@@ -135,138 +160,205 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
     _addMessage("❌ $error", false);
   }
 
-  // New method to copy message to clipboard
-  void _copyToClipboard(String text) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    
-    // Show a snackbar to confirm copy
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text('Message copied to clipboard'),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('📚 Notes Assistant'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          // PDF Selection indicator
-          if (_selectedPDF != null)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              color: Colors.blue.shade50,
-              child: Row(
-                children: [
-                  Icon(Icons.picture_as_pdf, color: Colors.red),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'PDF selected: ${_selectedPDF!.path.split('/').last}',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => setState(() => _selectedPDF = null),
-                  ),
-                ],
-              ),
-            ),
-          
-          // Chat messages
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return _buildMessageBubble(message);
-              },
-            ),
-          ),
-          
-          // Input area
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade300,
-                  blurRadius: 4,
-                  offset: Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
+          PurpleWaveBackground(),
+
+          SafeArea(
+            child: Column(
               children: [
-                // PDF upload button
-                IconButton(
-                  icon: Icon(Icons.attach_file, color: Colors.blue.shade700),
-                  onPressed: _isLoading ? null : _pickPDF,
-                  tooltip: 'Upload PDF',
-                ),
-                
-                // Text input
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: _selectedPDF != null 
-                          ? 'How should I process this PDF?'
-                          : 'Type syllabus or describe what notes you need...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    maxLines: null,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
-                ),
-                
-                SizedBox(width: 8),
-                
-                // Send button
+                // Custom App Bar
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: _isLoading 
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
                             ),
-                          )
-                        : Icon(Icons.send, color: Colors.white),
-                    onPressed: _isLoading ? null : _sendMessage,
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Notes Assistant',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // PDF indicator
+                if (_selectedPDF != null)
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'PDF selected: ${_selectedPDF!.path.split('/').last}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.white70),
+                          onPressed: () => setState(() => _selectedPDF = null),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Chat messages
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
+                ),
+
+                // Input area
+                Container(
+                  margin: EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      // PDF upload
+                      GestureDetector(
+                        onTap: _isLoading ? null : _pickPDF,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.attach_file,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+
+                      // Input box
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            decoration: InputDecoration(
+                              hintText: _selectedPDF != null
+                                  ? 'How should I process this PDF?'
+                                  : 'Lets get started....',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
+                            ),
+                            maxLines: null,
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+
+                      // Send button
+                      GestureDetector(
+                        onTap: _isLoading ? null : _sendMessage,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF8B5C86), Color(0xFF6D28D9)],
+                            ),
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF6C5CE7).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: _isLoading
+                              ? Center(
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -277,6 +369,7 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
     );
   }
 
+  // Dark theme message bubbles
   Widget _buildMessageBubble(Message message) {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -287,40 +380,42 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
           right: message.isUser ? 0 : 50,
         ),
         child: Column(
-          crossAxisAlignment: message.isUser 
-              ? CrossAxisAlignment.end 
+          crossAxisAlignment: message.isUser
+              ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: message.isUser ? Colors.blue.shade700 : Colors.grey.shade200,
+                color: message.isUser
+                    ? Color(0xFF6D28D9).withOpacity(0.9)
+                    : Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     message.text,
-                    style: TextStyle(
-                      color: message.isUser ? Colors.white : Colors.black87,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   SizedBox(height: 4),
                   Text(
                     '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      color: message.isUser ? Colors.white70 : Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            
-            // Copy button for AI messages only
-            if (!message.isUser && !message.text.contains("🔄") && !message.text.contains("❌"))
+
+            // Copy button
+            if (!message.isUser &&
+                !message.text.contains("🔄") &&
+                !message.text.contains("❌"))
               Container(
                 margin: EdgeInsets.only(top: 4),
                 child: InkWell(
@@ -329,23 +424,19 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Colors.white.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.copy,
-                          size: 16,
-                          color: Colors.grey.shade600,
-                        ),
+                        Icon(Icons.copy, size: 16, color: Colors.white70),
                         SizedBox(width: 4),
                         Text(
                           'Copy',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: Colors.white70,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -357,6 +448,83 @@ class _NotesChatScreenState extends State<NotesChatScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class PurpleWaveBackground extends StatelessWidget {
+  const PurpleWaveBackground({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2A0A4B), Color(0xFF000000)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -80,
+            left: -100,
+            child: _glowLayer(300, Colors.purpleAccent.withOpacity(0.15)),
+          ),
+          Positioned(
+            bottom: -120,
+            right: -150,
+            child: _glowLayer(400, Colors.deepPurple.withOpacity(0.12)),
+          ),
+          Positioned(
+            top: 200,
+            right: -100,
+            child: _glowLayer(250, Colors.purple.withOpacity(0.1)),
+          ),
+          Positioned(top: 220, left: 80, child: _lightStreak()),
+          Positioned(bottom: 250, right: 100, child: _lightStreak()),
+        ],
+      ),
+    );
+  }
+
+  Widget _glowLayer(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            blurRadius: size * 0.8,
+            spreadRadius: size * 0.3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _lightStreak() {
+    return Container(
+      width: 140,
+      height: 8,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.0),
+            Colors.white.withOpacity(0.4),
+            Colors.white.withOpacity(0.0),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(color: Colors.transparent),
       ),
     );
   }
