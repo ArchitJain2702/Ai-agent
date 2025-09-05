@@ -5,6 +5,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import youtubeRoutes from "./routes/youtube.js";
+import recomendationRoutes from './routes/recomendation.js'
 import { sendOTPEmail } from "./utils/email.js";
 import notesRoutes from "./routes/notes.js"; 
 
@@ -24,7 +25,7 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api", youtubeRoutes);
 app.use("/api/notes",notesRoutes);
-app.use("/api/recomendation",)
+app.use("/api/recomendation",recomendationRoutes);
 // Health check
 app.get("/", (_req, res) => res.send("Backend is running 🚀"));
 

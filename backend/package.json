@@ -11,10 +11,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Ai agent for multiple purposes ",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
+    "axios": "^1.6.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
