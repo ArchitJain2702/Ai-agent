@@ -24,6 +24,7 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api", youtubeRoutes);
 app.use("/api/notes",notesRoutes);
+app.use("/api/recomendation",)
 // Health check
 app.get("/", (_req, res) => res.send("Backend is running 🚀"));
 
