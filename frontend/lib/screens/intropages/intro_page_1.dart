@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/homescreen/homescreen.dart';
 import 'package:frontend/screens/intropages/intro_page_2.dart';
 
 class EntryPage extends StatefulWidget {
@@ -25,7 +26,7 @@ class _EntryPageState extends State<EntryPage> {
       // 🔹 Navigate if fully dragged
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const NextPage()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
       // 🔹 Reset back if not fully dragged

@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/homescreen/homescreen.dart';
 import 'package:frontend/screens/intropages/intro_page_1.dart';
 import 'package:frontend/screens/intropages/intro_page_2.dart';
 import 'package:frontend/screens/notesgenerator/notes_chatscreen.dart';
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Notes App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: NotesChatScreen(),
+      home: EntryPage(),
     );
   }
 }
